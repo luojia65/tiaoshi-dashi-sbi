@@ -10,13 +10,20 @@ pub fn on_breakpoint(ctx: &mut KernelContext) {
     println!("[DebugSBI] Breakpoint at {:#x}", ctx.mepc);
     loop {
         match get_command() {
-            Ok(()) => continue,
+            Ok(ControlFlow::Continue) => continue,
+            Ok(ControlFlow::Break) => break,
             Err(e) => println!("Error: {:?}", e),
         }
     }
 }
 
-fn get_command() -> Result<(), ParseError> {
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+enum ControlFlow {
+    Break,
+    Continue
+}
+
+fn get_command() -> Result<ControlFlow, ParseError> {
     let buf = fill_input_buffer();
     let string = match String::from_utf8(buf) {
         Ok(s) => s,
@@ -27,18 +34,17 @@ fn get_command() -> Result<(), ParseError> {
     // println!("{:?}", lexer(&string).collect::<Vec<_>>());
     let mut sym = iter.next();
     command(&mut iter, &mut sym, &mut metadata).map_err(|_| ParseError::SyntaxError)?;
-    execute_command(&metadata);
-    Ok(())
+    Ok(execute_command(&metadata))
 }
 
-fn execute_command(metadata: &Metadata) {
+fn execute_command(metadata: &Metadata) -> ControlFlow {
     // println!("Metadata: {:?}", metadata);
     if let Some(CommandType::X) = metadata.command_type {
         let address = if let Some(address) = metadata.address_number {
             address
         } else {
             println!("[DebugSBI] Address not provided for command x");
-            return;
+            return ControlFlow::Continue;
         };
         let mut ans: u128 = 0;
         let mut ansi: i128 = 0;
@@ -75,7 +81,11 @@ fn execute_command(metadata: &Metadata) {
             if ans_signed { format!("{:#x}", ansi) } else { format!("{:#x}", ans) }
         };
         println!("[DebugSBI] PhysMem[{:#x}], Machine = {}", address, value);
+    } else if let Some(CommandType::C) = metadata.command_type {
+        println!("[DebugSBI] Continuing.");
+        return ControlFlow::Break
     }
+    ControlFlow::Continue
 }
 
 struct Lexer<I: Iterator> {
@@ -174,7 +184,23 @@ struct Metadata {
 }
 
 fn command<I: Iterator<Item = Word>>(iter: &mut I, sym: &mut Option<Word>, m: &mut Metadata) -> Result<(), ()>  { 
-    x(iter, sym, m)
+    if *sym == Some(Word::Character('x')) {
+        x(iter, sym, m)
+    } else if *sym == Some(Word::Character('c')) {
+        c(iter, sym, m)
+    } else {
+        Err(())
+    }
+}
+
+fn c<I: Iterator<Item = Word>>(iter: &mut I, sym: &mut Option<Word>, m: &mut Metadata) -> Result<(), ()>  { 
+    if *sym == Some(Word::Character('c')) {
+        *sym = iter.next();
+        m.command_type = Some(CommandType::C);
+        Ok(())
+    } else {
+        Err(())
+    }
 }
 
 fn x<I: Iterator<Item = Word>>(iter: &mut I, sym: &mut Option<Word>, m: &mut Metadata) -> Result<(), ()>  {
@@ -362,6 +388,7 @@ fn fill_input_buffer() -> Vec<u8> {
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum CommandType {
     X,
+    C,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
