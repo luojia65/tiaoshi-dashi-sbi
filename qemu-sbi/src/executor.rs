@@ -46,6 +46,7 @@ impl Generator for Runtime {
         let mtval = mtval::read();
         let trap = match mcause::read().cause() {
             Trap::Exception(Exception::SupervisorEnvCall) => MachineTrap::SbiCall(),
+            Trap::Exception(Exception::Breakpoint) => MachineTrap::Breakpoint(),
             Trap::Exception(Exception::LoadFault) => MachineTrap::LoadAccessFault(mtval),
             Trap::Exception(Exception::StoreFault) => MachineTrap::StoreAccessFault(mtval),
             Trap::Exception(Exception::IllegalInstruction) => MachineTrap::IllegalInstruction(mtval),
@@ -58,6 +59,7 @@ impl Generator for Runtime {
 #[repr(C)]
 pub enum MachineTrap {
     SbiCall(),
+    Breakpoint(),
     LoadAccessFault(usize),
     StoreAccessFault(usize),
     IllegalInstruction(usize),

@@ -11,12 +11,13 @@ use riscv::register::{sepc, /*stvec::{self, TrapMode},*/ scause::{self, Trap, Ex
 
 pub extern "C" fn rust_main(hartid: usize, dtb_pa: usize) -> ! {
     println!("<< Test-kernel: Hart id = {}, DTB physical address = {:#x}", hartid, dtb_pa);
+    unsafe { asm!("ebreak") };
     // test_base_extension();
     // test_sbi_ins_emulation();
     // unsafe { stvec::write(start_trap as usize, TrapMode::Direct) };
     // println!(">> Test-kernel: Trigger illegal exception");
     // unsafe { asm!("csrw mcycle, x0") }; // mcycle cannot be written, this is always a 4-byte illegal instruction
-    // println!("<< Test-kernel: SBI test SUCCESS, shutdown");
+    println!("<< Test-kernel: SBI test SUCCESS, shutdown");
     sbi::shutdown()
 }
 

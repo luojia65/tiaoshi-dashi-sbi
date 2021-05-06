@@ -10,14 +10,25 @@ extern crate alloc;
 mod executor;
 mod reset;
 mod uart;
-
-use rustsbi::println;
-
-const STACK_SIZE: usize = 0x10000 * 8;
+mod debug;
 
 use core::pin::Pin;
 use core::ops::{Generator, GeneratorState};
+use core::panic::PanicInfo;
 use executor::{Runtime, MachineTrap};
+use linked_list_allocator::LockedHeap;
+use rustsbi::println;
+use alloc::alloc::Layout;
+
+const STACK_SIZE: usize = 0x10000 * 8;
+const HEAP_SIZE: usize = 0x10000;
+
+static mut MACHINE_HEAP: [u8; HEAP_SIZE] = [0; HEAP_SIZE];
+#[link_section = ".bss.stack"]
+static mut MACHINE_STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
+#[global_allocator]
+static ALLOCATOR: LockedHeap = LockedHeap::empty();
+
 
 fn rust_main(mhartid: usize, opaque: usize) -> ! { 
     if mhartid == 0 {
@@ -37,6 +48,13 @@ fn rust_main(mhartid: usize, opaque: usize) -> ! {
                 ctx.a1 = ans.value;
                 ctx.mepc = ctx.mepc.wrapping_add(4);
             }
+            GeneratorState::Yielded(MachineTrap::Breakpoint()) => { 
+                let ctx = rt.context_mut();
+                
+                debug::on_breakpoint(ctx);
+                
+                ctx.mepc = ctx.mepc.wrapping_add(4);
+            }
             GeneratorState::Yielded(_trap) => todo!(),
             GeneratorState::Complete(()) => shutdown(),
         }
@@ -51,10 +69,6 @@ fn first_hart_init() {
     init_reset();
     println!("RustSBI version: {}", rustsbi::VERSION);
 }
-
-const HEAP_SIZE: usize = 0x10_000;
-
-static mut MACHINE_HEAP: [u8; HEAP_SIZE] = [0; HEAP_SIZE];
 
 fn init_alloc() {
     unsafe {
@@ -81,8 +95,6 @@ fn shutdown() -> ! {
     loop {}
 }
 
-use core::panic::PanicInfo;
-
 #[cfg_attr(not(test), panic_handler)]
 #[allow(unused)]
 fn panic(info: &PanicInfo) -> ! {
@@ -98,13 +110,6 @@ fn panic(info: &PanicInfo) -> ! {
     loop { }
 }
 
-use linked_list_allocator::LockedHeap;
-
-#[global_allocator]
-static ALLOCATOR: LockedHeap = LockedHeap::empty();
-
-use alloc::alloc::Layout;
-
 #[cfg_attr(not(test), alloc_error_handler)]
 #[allow(unused)]
 fn alloc_error(layout: Layout) -> ! {
@@ -116,9 +121,6 @@ fn alloc_error(layout: Layout) -> ! {
     );
     loop {}
 }
-
-#[link_section = ".bss.stack"]
-static mut MACHINE_STACK: [u8; STACK_SIZE] = [0; STACK_SIZE];
 
 #[naked]
 #[link_section = ".text.entry"] 
