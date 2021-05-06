@@ -45,6 +45,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "linked_list_allocator"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d0b725207570aa16096962d0b20c79f8a543df2280bd3c903022b9b0b4d7ea68"
+dependencies = [
+ "spinning_top",
+]
+
+[[package]]
+name = "lock_api"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0382880606dff6d15c9476c416d18690b72742aa7b605bb6dd6ec9030fbf07eb"
+dependencies = [
+ "scopeguard",
+]
+
+[[package]]
 name = "memchr"
 version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -85,6 +103,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "riscv"
+version = "0.6.0"
+source = "git+https://github.com/rust-embedded/riscv?rev=16e4870f#16e4870f65a1e9bd62aa5aacb463dd280c9823b6"
+dependencies = [
+ "bare-metal",
+ "bit_field",
+ "riscv-target",
+]
+
+[[package]]
 name = "riscv-target"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -112,9 +140,15 @@ dependencies = [
  "embedded-hal",
  "lazy_static",
  "nb",
- "riscv",
+ "riscv 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "spin 0.7.1",
 ]
+
+[[package]]
+name = "scopeguard"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
 
 [[package]]
 name = "semver"
@@ -144,8 +178,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13287b4da9d1207a4f4929ac390916d64eacfe236a487e9a9f5b3be392be5162"
 
 [[package]]
+name = "spinning_top"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8bd0ab6b8c375d2d963503b90d3770010d95bc3b5f98036f948dee24bf4e8879"
+dependencies = [
+ "lock_api",
+]
+
+[[package]]
+name = "test-kernel"
+version = "0.1.0"
+dependencies = [
+ "lazy_static",
+ "riscv 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "spin 0.7.1",
+]
+
+[[package]]
 name = "tiaoshi-dashi-qemu-sbi"
 version = "0.1.0"
 dependencies = [
+ "embedded-hal",
+ "linked_list_allocator",
+ "nb",
+ "riscv 0.6.0 (git+https://github.com/rust-embedded/riscv?rev=16e4870f)",
  "rustsbi",
 ]

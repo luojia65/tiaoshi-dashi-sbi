@@ -7,3 +7,7 @@ edition = "2018"
 
 [dependencies]
 rustsbi = "0.2.0-alpha.3"
+riscv = { git = "https://github.com/rust-embedded/riscv", rev = "16e4870f", features = ["inline-asm"] }
+linked_list_allocator = "0.9"
+embedded-hal = "1.0.0-alpha.1"
+nb = "1"

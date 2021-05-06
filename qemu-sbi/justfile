@@ -1,0 +1,53 @@
+target := "riscv64imac-unknown-none-elf"
+mode := "debug"
+build-path := "../target/" + target + "/" + mode + "/"
+firmware-elf := build-path + "tiaoshi-dashi-qemu-sbi"
+firmware-bin := build-path + "tiaoshi-dashi-qemu-sbi.bin"
+test-kernel-elf := build-path + "test-kernel"
+test-kernel-bin := build-path + "test-kernel.bin"
+
+objdump := "riscv64-unknown-elf-objdump"
+objcopy := "rust-objcopy --binary-architecture=riscv64"
+
+threads := "1"
+
+build: firmware test-kernel
+    @{{objcopy}} {{firmware-elf}} --strip-all -O binary {{firmware-bin}}
+
+firmware:
+    @cargo build --target={{target}}
+
+test-kernel:
+    @just -f "../test-kernel/justfile" build
+
+qemu: build
+    @qemu-system-riscv64 \
+            -machine virt \
+            -nographic \
+            -bios none \
+            -device loader,file={{firmware-bin}},addr=0x80000000 \
+            -device loader,file={{test-kernel-bin}},addr=0x80200000 \
+            -smp threads={{threads}}
+
+run: build qemu
+
+asm: build
+    @{{objdump}} -D {{firmware-elf}} | less
+
+debug: build
+    @qemu-system-riscv64 \
+            -machine virt \
+            -nographic \
+            -bios none \
+            -device loader,file={{firmware-bin}},addr=0x80000000 \
+            -device loader,file={{test-kernel-bin}},addr=0x80200000 \
+            -smp threads={{threads}} \
+            -gdb tcp::1234 -S
+
+gdb := "riscv64-unknown-elf-gdb"
+
+gdb: 
+    @{{gdb}} --eval-command="file {{firmware-elf}}" --eval-command="target remote localhost:1234"
+
+gdb-kernel: 
+    @{{gdb}} --eval-command="file {{test-kernel-elf}}" --eval-command="target remote localhost:1234"
