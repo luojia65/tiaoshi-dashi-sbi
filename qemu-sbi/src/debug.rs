@@ -6,7 +6,7 @@ use alloc::string::String;
 const INPUT_LIMIT: usize = 256;
 
 pub fn on_breakpoint(ctx: &mut KernelContext) {
-    println!("Breakpoint at {:#x}", ctx.mepc);
+    println!("[DebugSBI] Breakpoint at {:#x}", ctx.mepc);
     loop {
         if console_loop() {
             break
@@ -15,7 +15,7 @@ pub fn on_breakpoint(ctx: &mut KernelContext) {
 }
 
 fn console_loop() -> bool {
-    print!("(tiaoshi) ");
+    print!("[DebugSBI] (debug) ");
     let mut input_buf = Vec::new();
     loop {
         let input = legacy_stdio_getchar();
@@ -65,15 +65,15 @@ fn process_command(input: &str) -> bool {
     }
     match parts[0] {
         "x" => {
-            println!("(0x1000) = 0x00000297"); // todo
+            println!("[DebugSBI] (0x1000) = 0x00000297"); // todo
             return false;
         }
         "c" => {
-            println!("Continuing.");
+            println!("[DebugSBI] Continuing.");
             return true
         },
         unknown => {
-            println!("Unknown command '{}'", unknown);
+            println!("[DebugSBI] Unknown command '{}'", unknown);
             return false
         },
     }
